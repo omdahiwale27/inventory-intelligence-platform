@@ -62,4 +62,92 @@ public class InventoryService {
 
         return stockMovementRepository.save(movement);
     }
+
+    @Transactional
+    public StockMovement removeStock(
+            Long productId,
+            Integer quantity,
+            String reference,
+            String notes) {
+
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Stock quantity must be greater than 0"
+            );
+        }
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Product not found with id: " + productId
+                        )
+                );
+
+        int previousStock = product.getCurrentStock();
+
+        if (previousStock < quantity) {
+            throw new IllegalArgumentException(
+                    "Insufficient stock for product: " + product.getName()
+            );
+        }
+
+        int newStock = previousStock - quantity;
+
+        product.setCurrentStock(newStock);
+
+        productRepository.save(product);
+
+        StockMovement movement = StockMovement.builder()
+                .product(product)
+                .type(StockMovementType.SALE)
+                .quantity(quantity)
+                .previousStock(previousStock)
+                .newStock(newStock)
+                .reference(reference)
+                .notes(notes)
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+
+        return stockMovementRepository.save(movement);
+    }
+    @Transactional
+    public StockMovement restoreStock(
+            Long productId,
+            Integer quantity,
+            String reference,
+            String notes) {
+
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Stock quantity must be greater than 0"
+            );
+        }
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Product not found with id: " + productId
+                        )
+                );
+
+        int previousStock = product.getCurrentStock();
+        int newStock = previousStock + quantity;
+
+        product.setCurrentStock(newStock);
+
+        productRepository.save(product);
+
+        StockMovement movement = StockMovement.builder()
+                .product(product)
+                .type(StockMovementType.RETURN)
+                .quantity(quantity)
+                .previousStock(previousStock)
+                .newStock(newStock)
+                .reference(reference)
+                .notes(notes)
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+
+        return stockMovementRepository.save(movement);
+    }
 }
